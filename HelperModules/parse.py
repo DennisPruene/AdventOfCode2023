@@ -1,3 +1,6 @@
+import re
+
+
 def parse_line_raw(line):
     return line
 
@@ -11,3 +14,7 @@ def parse_file(filename, parse_line=parse_line_raw):
 
     parsed_file = list(map(parse_line, lines))
     return parsed_file
+
+
+def extract_integers(string):
+    return list(map(int, re.findall('([0-9]+)', string)))
