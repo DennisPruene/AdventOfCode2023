@@ -1,5 +1,7 @@
 import re
 from parse import parse_file
+from sympy.solvers.diophantine.diophantine import base_solution_linear
+from functools import reduce
 
 
 def parse_input(filename):
@@ -68,6 +70,8 @@ def get_run_metadata(instructions, graph, start_node):
 
 def combine_period_tables(period_table1, period_table2):
     # k: pre_period_steps, A: pre_period_destination_occurences, n: period_steps, B: period_destination_occurences
+    print(period_table1)
+    print(period_table2)
     (k, A, n, B) = period_table1
     (l, C, m, D) = period_table2
     if l < k:
@@ -84,16 +88,23 @@ def combine_period_tables(period_table1, period_table2):
     for a in A:
         if a in C:
             X.append(a)
-    # b in B, d in D, as k = l we want to know when (lambda * n + b = mu * m + d), so we need to solve
-    # the diophantine equation lambda * n + mu * (-m) = d - b. In particular we want to know the integer solution
-    # (lambda_0, mu_0) where lambda_0 is the least possible positive integer
+    g = None
+    for b in B:
+        for d in D:
+            (x_0, _) = solve_diophantine(d - b, n, -m)
+            if x_0 is None:
+                continue
+            x_0 = x_0 % m
+            if x_0 < 0:
+                x_0 += m
+            Y.append(x_0 * n + b)
     return (s, X, t, Y)
-
-# Solves the diophantine equation x*n + y*m = d and returns a tuple containing (g, x_0, y_0) where g = gcd(n, m)
-# and (x_0, y_0) is the integer solution where x_0 is the least positive integer possible
 
 
 def solve_diophantine(n, m, d):
+    # Solves the diophantine equation x*n + y*m = d and returns a tuple containing (g, x_0, y_0) where g = gcd(n, m)
+    # and (x_0, y_0) is the integer solution where x_0 is the least positive integer possible
+
     # assume |n| > |m|,
     # n = q_1 * m + r_1         | r_1 = 1*n + (-q_1) * m
     # m = q_2 * r_1 + r_2       | r_2 = 1*m + (-q_2) * r_1 = 1 * m + (-q_2) * (1 * n + (-q_1) * m) = (-q_2) * n + (q_1 * q_2 + 1) * m
@@ -101,7 +112,20 @@ def solve_diophantine(n, m, d):
     # ...
     # r_n-1 = q_n * r_n + 0
     # ==> r_n = gcd(n, m)
-    pass
+    return base_solution_linear(n, m, d)
+
+
+def gcd(n, m):
+    (n, m) = (abs(n), abs(m))
+    if n < m:
+        (n, m) = (m, n)
+    while m != 0:
+        (n, m) = (m, n % m)
+    return n
+
+
+def lcm(n, m):
+    return n * m // gcd(n, m)
 
 
 def solve_part2(filename):
@@ -109,8 +133,12 @@ def solve_part2(filename):
     start_nodes = list(filter(lambda node: node[2] == 'A', graph.keys()))
     period_tables = [get_run_metadata(instructions, graph, start_node)
                      for start_node in start_nodes]
+    final_period_table = reduce(
+        combine_period_tables, period_tables[1:], period_tables[0])
+    print(final_period_table)
 
 
 if __name__ == '__main__':
     solve_part1('input')
+    solve_part2('example')
     solve_part2('input')
