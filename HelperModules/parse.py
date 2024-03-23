@@ -17,4 +17,4 @@ def parse_file(filename, parse_line=parse_line_raw):
 
 
 def extract_integers(string):
-    return list(map(int, re.findall('([0-9]+)', string)))
+    return list(map(int, re.findall('([-+]?[0-9]+)', string)))
