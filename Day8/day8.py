@@ -1,6 +1,5 @@
 import re
 from parse import parse_file
-from sympy.solvers.diophantine.diophantine import base_solution_linear
 from functools import reduce
 
 
@@ -68,53 +67,6 @@ def get_run_metadata(instructions, graph, start_node):
     return (pre_period_steps, pre_period_winners, period_steps, period_winners)
 
 
-def combine_period_tables(period_table1, period_table2):
-    # k: pre_period_steps, A: pre_period_destination_occurences, n: period_steps, B: period_destination_occurences
-    print(period_table1)
-    print(period_table2)
-    (k, A, n, B) = period_table1
-    (l, C, m, D) = period_table2
-    if l < k:
-        return combine_period_tables(period_table2, period_table1)
-    elif k < l:
-        for i in range(len(B)):
-            if B[i] < l - k:
-                A.append(B[i] + k)
-                B[i] += n - l + k
-            else:
-                B[i] -= l - k
-        k = l
-    (s, X, t, Y) = (k, [], lcm(n, m), [])
-    for a in A:
-        if a in C:
-            X.append(a)
-    g = None
-    for b in B:
-        for d in D:
-            (x_0, _) = solve_diophantine(d - b, n, -m)
-            if x_0 is None:
-                continue
-            x_0 = x_0 % m
-            if x_0 < 0:
-                x_0 += m
-            Y.append(x_0 * n + b)
-    return (s, X, t, Y)
-
-
-def solve_diophantine(n, m, d):
-    # Solves the diophantine equation x*n + y*m = d and returns a tuple containing (g, x_0, y_0) where g = gcd(n, m)
-    # and (x_0, y_0) is the integer solution where x_0 is the least positive integer possible
-
-    # assume |n| > |m|,
-    # n = q_1 * m + r_1         | r_1 = 1*n + (-q_1) * m
-    # m = q_2 * r_1 + r_2       | r_2 = 1*m + (-q_2) * r_1 = 1 * m + (-q_2) * (1 * n + (-q_1) * m) = (-q_2) * n + (q_1 * q_2 + 1) * m
-    # r_1 = q_3 * r_2 + r_3
-    # ...
-    # r_n-1 = q_n * r_n + 0
-    # ==> r_n = gcd(n, m)
-    return base_solution_linear(n, m, d)
-
-
 def gcd(n, m):
     (n, m) = (abs(n), abs(m))
     if n < m:
@@ -133,9 +85,9 @@ def solve_part2(filename):
     start_nodes = list(filter(lambda node: node[2] == 'A', graph.keys()))
     period_tables = [get_run_metadata(instructions, graph, start_node)
                      for start_node in start_nodes]
-    final_period_table = reduce(
-        combine_period_tables, period_tables[1:], period_tables[0])
-    print(final_period_table)
+    periods = [table[2] for table in period_tables]
+    solution = reduce(lcm, periods, 1)
+    print(solution)
 
 
 if __name__ == '__main__':
