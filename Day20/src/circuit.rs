@@ -8,6 +8,7 @@ use std::fmt::Debug;
 pub struct Circuit {
     #[allow(dead_code)]
     module_names: Vec<String>,
+    module_name_to_index: HashMap<String, usize>,
     source_modules: Vec<Vec<usize>>,
     destination_modules: Vec<Vec<usize>>,
     module_states: Vec<ModuleState>,
@@ -73,10 +74,15 @@ impl Circuit {
         }
         Self {
             module_names,
+            module_name_to_index,
             source_modules,
             destination_modules,
             module_states,
         }
+    }
+
+    pub fn get_index(&self, name: &str) -> usize {
+        self.module_name_to_index[name]
     }
 
     pub fn reset(&mut self) {
@@ -105,16 +111,27 @@ impl Circuit {
         }
     }
 
-    pub fn press_button(&mut self) -> bool {
+    pub fn press_button(&mut self) -> Vec<Vec<(usize, bool)>> {
         let mut pulse_queue: VecDeque<_> = vec![(!0usize, false, 0usize)].into();
+        let mut logs: Vec<Vec<(usize, bool)>> = vec![vec![]; self.module_names.len()];
+        let mut turn = 0usize;
         while !pulse_queue.is_empty() {
             let (source, pulse, dest) = pulse_queue.pop_front().unwrap();
-            if self.module_states[dest] == ModuleState::Output && !pulse {
-                return true;
+            if source != !0usize {
+                logs[source].push((turn, pulse))
             }
+            turn += 1;
             pulse_queue.extend(self.handle_pulse(source, pulse, dest))
         }
-        false
+        logs
+    }
+
+    pub fn press_button_n_times(&mut self, n: usize) -> Vec<Vec<Vec<(usize, bool)>>> {
+        let mut logs: Vec<Vec<Vec<(usize, bool)>>> = vec![];
+        for _ in 0..n {
+            logs.push(self.press_button())
+        }
+        logs
     }
 
     pub fn press_button_and_count_pulses(&mut self) -> (usize, usize) {

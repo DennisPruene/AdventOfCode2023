@@ -4,6 +4,7 @@ mod module;
 
 use circuit::Circuit;
 use regex::Regex;
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
@@ -19,14 +20,28 @@ fn main() {
     }
     println!("{low_pulse_count}, {high_pulse_count}");
     circuit.reset();
-    let mut press_count = 1u128;
-    while !circuit.press_button() {
-        press_count += 1;
-        if press_count % 1000000 == 0 {
-            println!("{press_count}");
+
+    let watch_for = vec!["gv", "ll", "rc", "qf"];
+    let watch_for_indices: Vec<usize> = watch_for
+        .iter()
+        .map(|name| circuit.get_index(name))
+        .collect();
+    let logs = circuit.press_button_n_times(10000);
+    let mut filtered_logs: HashMap<String, Vec<(usize, usize)>> = watch_for
+        .iter()
+        .map(|name| (name.to_string(), vec![]))
+        .collect();
+    for (press_index, log) in logs.iter().enumerate() {
+        for (&watch_for_name, &watch_for_index) in watch_for.iter().zip(watch_for_indices.iter()) {
+            for (turn_index, _) in log[watch_for_index].iter().filter(|(_, pu)| !*pu) {
+                filtered_logs
+                    .get_mut(watch_for_name)
+                    .unwrap()
+                    .push((press_index + 1, *turn_index))
+            }
         }
     }
-    println!("{press_count}");
+    println!("{:#?}", filtered_logs);
 
     /*let mut low_pulse_count = 0;
     let mut high_pulse_count = 0;
