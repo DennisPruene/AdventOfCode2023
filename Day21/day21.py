@@ -176,7 +176,8 @@ def compute_perimeter_area(log_by_bucket, length, steps):
             compute_steps_to_reach_garden(length, garden_steps - 1, 1)
         print(remaining_steps)
         for bucket in [(1, 1), (1, -1), (-1, 1), (-1, -1)]:
-            perimeter_area += log_by_bucket[bucket][remaining_steps]
+            perimeter_area += (garden_steps - 1) * \
+                log_by_bucket[bucket][remaining_steps]
     return perimeter_area
 
 
