@@ -21,6 +21,30 @@ def solve_part1(filename):
     print(dists[(end_y, end_x)])
 
 
+def solve_part2(filename):
+    print(f'Reading maze...')
+    maze = np.asarray(parse_file(filename, list))
+    maze = np.pad(maze, 1, constant_values='#')
+    start_y = 1
+    ((start_x,),) = np.where(maze[1] == '.')
+    end_y = maze.shape[0] - 2
+    ((end_x,),) = np.where(maze[-2] == '.')
+
+    print("Initializing Graph...")
+    (vertices, edges, costs) = compute_intersection_connection_graph(
+        maze, (start_y, start_x), (end_y, end_x), full_graph=True)
+    print("Graph Initialized!")
+    solution = 0
+    # print(edges)
+    for path in generate_non_repeating_paths(edges, [(start_y, start_x)], (end_y, end_x)):
+        distance = sum(costs[(cur_v, nex_v)]
+                       for (cur_v, nex_v) in zip(path[:-1], path[1:]))
+        if distance > solution:
+            solution = distance
+            print(f'improved solution to {solution}!')
+    print(solution)
+
+
 def print_maze(maze):
     print('\n'.join((''.join(row) for row in maze)))
 
@@ -77,7 +101,7 @@ def find_intersections(maze):
     return intersections
 
 
-def compute_intersection_connection_graph(maze, start_point, end_point):
+def compute_intersection_connection_graph(maze, start_point, end_point, full_graph=False):
     intersections = find_intersections(maze)
     edges = {intersection: [] for intersection in intersections}
     edges[start_point] = []
@@ -94,11 +118,13 @@ def compute_intersection_connection_graph(maze, start_point, end_point):
                 continue
             arrow_direction = ARROW_TO_DIR[maze[tuple(
                 intersec_arr + direction)]]
-            if np.array_equal(direction, -arrow_direction):
+            if not full_graph and np.array_equal(direction, -arrow_direction):
                 continue
             (connected_intersection, steps_taken) = follow_path_until_intersection(
                 maze, intersec_arr + 2 * direction, direction)
             edges[intersection].append(connected_intersection)
+            if edges.get(connected_intersection) is None:
+                edges[connected_intersection] = []
             costs[(intersection, connected_intersection)] = steps_taken + 2
     intersections.append(start_point)
     intersections.append(end_point)
@@ -123,7 +149,7 @@ def follow_path_until_intersection(maze, start_point, start_direction):
         if not has_moved:
             return (tuple(current_point), steps_taken)
         steps_taken += 1
-    current_point += ARROW_TO_DIR[maze[tuple(current_point)]]
+    current_point += current_direction
     steps_taken += 1
     return (tuple(current_point), steps_taken)
 
@@ -149,5 +175,20 @@ def compute_longest_distances(vertices, edges, costs, start_vertex):
     return dists
 
 
+def generate_non_repeating_paths(edges, current_path, end_vertex):
+    if current_path[-1] == end_vertex:
+        yield current_path
+        return None
+
+    for next_vertex in edges[current_path[-1]]:
+        if next_vertex in current_path:
+            continue
+        next_path = current_path.copy()
+        next_path.append(next_vertex)
+        for path in generate_non_repeating_paths(edges, next_path, end_vertex):
+            yield path
+
+
 if __name__ == '__main__':
-    solve_part1('input')
+    # solve_part1('input')
+    solve_part2('input')
